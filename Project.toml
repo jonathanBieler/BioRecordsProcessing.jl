@@ -1,0 +1,13 @@
+name = "BioRecordsProcessing"
+uuid = "321bc2d7-9525-42af-8b23-17b2621d5ea8"
+authors = ["Jonathan Bieler <jonathan.bieler@alumni.epfl.ch> and contributors"]
+version = "0.1.0"
+
+[compat]
+julia = "1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
