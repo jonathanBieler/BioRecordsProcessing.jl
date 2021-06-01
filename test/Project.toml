@@ -1,0 +1,6 @@
+[deps]
+BioSequences = "7e6ae17a-c86d-528c-b3b9-7f778a29fe59"
+FASTX = "c2308a5c-f048-11e8-3e8a-31650f418d12"
+FormatSpecimens = "3372ea36-2a1a-11e9-3eb7-996970b6ffbd"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+XAM = "d759349c-bcba-11e9-07c2-5b90f8f05f7c"
