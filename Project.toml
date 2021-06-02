@@ -11,6 +11,7 @@ Glob = "c27321d9-0574-5035-807b-f59d2c89b15c"
 XAM = "d759349c-bcba-11e9-07c2-5b90f8f05f7c"
 
 [compat]
+BGZFStreams = "0.3"
 julia = "1"
 
 [extras]
