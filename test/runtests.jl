@@ -1,5 +1,5 @@
 using BioRecordsProcessing
-using Test, FASTX, XAM, BioSequences, FormatSpecimens
+using Test, FASTX, XAM, VariantCallFormat, BioSequences, FormatSpecimens
 
 @testset "BioRecordsProcessing.jl" begin
     
@@ -38,7 +38,7 @@ using Test, FASTX, XAM, BioSequences, FormatSpecimens
     @testset "BAM" begin
         mktempdir() do dir
             spec = list_valid_specimens("BAM")
-            bam = joinpath(path_of_format("BAM"), "R_12h_D06.uniq.q40.bam" )
+            bam = joinpath(path_of_format("BAM"), "R_12h_D06.uniq.q40.bam")
 
             BioRecordsProcessing.process(XAM.BAM, bam, dir; prefix = "out") do record
                 return record
@@ -53,7 +53,7 @@ using Test, FASTX, XAM, BioSequences, FormatSpecimens
                 records -> length(records) == 2
             )
             spec = list_valid_specimens("BAM")
-            bam = joinpath(path_of_format("BAM"), "R_12h_D06.uniq.q40.bam" )
+            bam = joinpath(path_of_format("BAM"), "R_12h_D06.uniq.q40.bam")
 
             BioRecordsProcessing.process(XAM.BAM, rg, bam, dir; prefix = "out") do r1,r2
                 (r1, r2)
@@ -61,6 +61,15 @@ using Test, FASTX, XAM, BioSequences, FormatSpecimens
         end
     end
     
+    @testset "VCF" begin
+        mktempdir() do dir
+            vcf = joinpath(path_of_format("VCF"), "adeno_virus.vcf")
+
+            BioRecordsProcessing.process(VCF, vcf, dir; prefix = "out") do record
+                return VCF.filter(record) == ["PASS"] ? record : nothing 
+            end
+        end
+    end
 
 end
 
