@@ -8,7 +8,7 @@
 Easily process files containing biological records. If several files are found in a directory
 they will be processed in parallel (one thread per file).
 
-## Examples
+## Usage
 
 ### Filter fasta reads shorter than 50bp :
 
