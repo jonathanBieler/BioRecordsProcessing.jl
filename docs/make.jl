@@ -20,4 +20,5 @@ makedocs(;
 
 deploydocs(;
     repo="github.com/jonathanBieler/BioRecordsProcessing.jl",
+    devbranch = "main",
 )
