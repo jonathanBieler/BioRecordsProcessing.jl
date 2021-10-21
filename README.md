@@ -5,12 +5,24 @@
 [![CI](https://github.com/jonathanBieler/BioRecordsProcessing.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/jonathanBieler/BioRecordsProcessing.jl/actions/workflows/CI.yml)
 [![codecov](https://codecov.io/gh/jonathanBieler/BioRecordsProcessing.jl/branch/main/graph/badge.svg?token=K19HIpy7cI)](https://codecov.io/gh/jonathanBieler/BioRecordsProcessing.jl)
 
-Easily process files containing biological records. If several files are found in a directory
-they will be processed in parallel (one thread per file).
+BioRecordsProcessing.jl aims at processing files containing biological records using a minimum amount of boilerplate. It can be used
+in place of tools like samtools, vcftools, sektq, etc.
 
 ## Usage
 
-### Filter fasta reads shorter than 50bp :
+To process a directory containing records files the user has to provide an `input_directory`, an `output_directory`,
+a [glob](https://github.com/vtjnash/Glob.jl) `pattern` that will select the files to process in the input directory, a module containting the record
+type of interrest (e.g. `FASTX.FASTA`, `XAM.BAM`, `VariantCallFormat.VCF`) and finally a `process_function` taking a record as input and returning either a record or `nothing` if the record is meant to be filtered out. If several files are found in a directory they will be processed in parallel using one thread per file.
+
+    process_directory(process_function, ReadType, input_directory, pattern, output_directory)
+   
+The `process_function` can be provided using a `do` block (see examples bellow). For testing the function it is convinient to limit the number of records to be processed using the optional `max_records` argument.
+   
+Paired files can be processed together using `process_directory_paired`, an additional function giving the filename of the second file in the pair given the filename of the first has to be provided. A single file can be processed using `process`.
+
+## Examples
+
+### Filter out fasta reads shorter than 50bp :
 
 ```julia
 using BioRecordsProcessing, FASTX
@@ -26,8 +38,9 @@ end
 ```julia
 using BioRecordsProcessing, FASTX
 
-get_f2 = f1 -> replace(f1, "_1" => "_2")#function to get the name of the file containing second reads
+get_f2 = f1 -> replace(f1, "_1" => "_2")#function to get the name of the second file of the pair
 
+# takes a read and trim it
 trim_record(r, trim) =  begin 
     s = FASTQ.sequence(r)
     sel = min(length(s), trim):length(s)
@@ -40,7 +53,7 @@ BioRecordsProcessing.process_directory_paired(FASTX.FASTQ, input_directory, "*_1
 end
 ```
 
-### Read a BAM file and groups reads by template name
+### Read a BAM file and groups reads by template name (experimental)
 
 ```julia
 using BioRecordsProcessing, XAM
