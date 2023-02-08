@@ -29,7 +29,7 @@ using BioRecordsProcessing, FASTX
 
 #test only on first 100 records
 BioRecordsProcessing.process_directory(FASTX.FASTA, input_directory, "*.fa", output_directory; max_records=100) do record
-    return FASTX.FASTA.seqlen(record) < 50 ? nothing : record
+    return length(sequence(record)) < 50 ? nothing : record
 end
 ```
 
