@@ -15,7 +15,8 @@ using Test, FASTX, XAM, VariantCallFormat, BioSequences, FormatSpecimens
 
             N_larger_than_5 = 0
             BioRecordsProcessing.process_directory(FASTX.FASTA, dir, "*.fa", dir; prefix = "out") do record
-                N_larger_than_5 += FASTX.FASTA.seqlen(record) > 5
+                N_larger_than_5 += length(sequence(record)) > 5
+            
                 return record
             end
             @test N_larger_than_5 == 5
