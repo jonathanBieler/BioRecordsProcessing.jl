@@ -46,7 +46,7 @@ jobs:
       - uses: codecov/codecov-action@v1
         with:
           file: lcov.info
-  docs:
+ docs:
     name: Documentation
     runs-on: ubuntu-latest
     steps:
@@ -54,17 +54,14 @@ jobs:
       - uses: julia-actions/setup-julia@v1
         with:
           version: '1'
-      - run: |
-          julia --project=docs -e '
-            using Pkg
-            Pkg.develop(PackageSpec(path=pwd()))
-            Pkg.instantiate()'
-      - run: |
-          julia --project=docs -e '
-            using Documenter: doctest
-            using BioRecordsProcessing
-            doctest(BioRecordsProcessing)'
-      - run: julia --project=docs docs/make.jl
+      - uses: julia-actions/julia-buildpkg@v1
+      - uses: julia-actions/julia-docdeploy@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
+      - run: |
+          julia --project=docs -e '
+            using Documenter: DocMeta, doctest
+            using BioRecordsProcessing
+            DocMeta.setdocmeta!(BioRecordsProcessing, :DocTestSetup, :(using BioRecordsProcessing); recursive=true)
+            doctest(BioRecordsProcessing)'
