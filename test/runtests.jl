@@ -16,7 +16,6 @@ using Test, FASTX, XAM, VariantCallFormat, BioSequences, FormatSpecimens
             N_larger_than_5 = 0
             BioRecordsProcessing.process_directory(FASTX.FASTA, dir, "*.fa", dir; prefix = "out") do record
                 N_larger_than_5 += length(sequence(record)) > 5
-            
                 return record
             end
             @test N_larger_than_5 == 5
@@ -30,8 +29,28 @@ using Test, FASTX, XAM, VariantCallFormat, BioSequences, FormatSpecimens
             indir = path_of_format("FASTA")
             f2 = f1 -> replace(f1, "_1" => "_2")
             
+            tot_length1 = tot_length2 = 0
+            
             BioRecordsProcessing.process_directory_paired(FASTX.FASTA, indir, "multi_1.fasta", f2, dir; prefix = "out") do r1, r2
+                tot_length1 += length(sequence(r1))
+                tot_length2 += length(sequence(r2))
                 return r1, r2
+            end
+            @test tot_length1 == 6*70 
+            @test tot_length2 == 6*70 
+        end
+    end
+
+    @testset "FASTQ.gz" begin
+        mktempdir() do dir
+            
+            indir = joinpath(@__DIR__, "data/")
+            @show indir
+
+            BioRecordsProcessing.process_directory(FASTX.FASTQ, indir, "*.fastq.gz", dir; prefix = "out") do record
+                @info 1
+                @show record
+                return record
             end
         end
     end
