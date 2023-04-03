@@ -46,14 +46,14 @@ jobs:
       - uses: codecov/codecov-action@v1
         with:
           file: lcov.info
- docs:
+  docs:
     name: Documentation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
         with:
-          version: '1'
+          version: '1.7'
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-docdeploy@v1
         env:
