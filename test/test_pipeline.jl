@@ -59,7 +59,8 @@ filename = "/Users/jbieler/.julia/dev/BioRecordsProcessing/test/data/illumina_fu
                 Collect(VCF.Record),
             )
             records = run(p)
-            @test length(records) == 14
+            
+            @test length(unique(records)) == 14
             
         end
     end

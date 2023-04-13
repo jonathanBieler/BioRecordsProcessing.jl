@@ -60,7 +60,7 @@ struct Collect{T} <: AbstractSink
 end
 
 open_writer(sink::Collect, filepath, filename, extension) = sink
-write(sink::Collect, record) = push!(sink.data, record)
+write(sink::Collect, record) = push!(sink.data, copy(record)) #need to copy because record can is updated in-place
 return_value(sink::Collect) = sink.data
 
 mutable struct Writer <: AbstractSink
@@ -152,8 +152,6 @@ function run(p::Pipeline{<:Reader, Si}; max_records = Inf) where {Si <: Abstract
 
     return_value(p.sink)
 end
-
-
 
 
 ##
