@@ -60,7 +60,7 @@ struct Collect{T} <: AbstractSink
 end
 
 open_writer(sink::Collect, filepath, filename, extension) = sink
-write(sink::Collect, record) = push!(sink.data, copy(record)) #need to copy because record can is updated in-place
+write(sink::Collect, record) = push!(sink.data, ismutable(record) ? copy(record) : record) #need to copy because record can be updated in-place
 return_value(sink::Collect) = sink.data
 
 mutable struct Writer <: AbstractSink
@@ -125,7 +125,7 @@ end
 
 ##
 
-function run(p::Pipeline{<:Reader, Si}; max_records = Inf) where {Si <: AbstractSink}
+function run(p::Pipeline{<:Reader, Si}; max_records = Inf, verbose = true) where {Si <: AbstractSink}
 
     filepath = p.source.file_provider.filename
     filename, extension = splitext(basename(filepath))
@@ -143,8 +143,8 @@ function run(p::Pipeline{<:Reader, Si}; max_records = Inf) where {Si <: Abstract
 
         k += 1
         k > max_records && break
-        if mod(k, 100_000) == 0
-            @info "$(Threads.threadid()), $(basename(file)) : Processed $(div(k, 1000))k records..."
+        if verbose && (mod(k, 100_000) == 0)
+            @info "$(Threads.threadid()), $(basename(filepath)) : Processed $(div(k, 1000))k records..."
         end     
     end
     close(reader)
@@ -152,6 +152,8 @@ function run(p::Pipeline{<:Reader, Si}; max_records = Inf) where {Si <: Abstract
 
     return_value(p.sink)
 end
+
+
 
 
 ##
