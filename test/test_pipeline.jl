@@ -65,4 +65,46 @@ filename = "/Users/jbieler/.julia/dev/BioRecordsProcessing/test/data/illumina_fu
         end
     end
 
+    @testset "VCF overwrite" begin
+        mktempdir() do dir
+            filepath = joinpath(path_of_format("VCF"), "adeno_virus.vcf")
+        
+            p = Pipeline(
+                Reader(VCF, File(filepath)),
+                Writer(VCF, dirname(filepath)),
+            )
+            @test_throws AssertionError run(p)    
+        end
+    end
+
+    @testset "Buffer + Collect" begin
+        
+        input = rand(10)
+        p = Pipeline(
+            Buffer(input),
+            x -> 2x,
+            Collect(Float64),
+        )
+        output = run(p)
+        @test all(output .≈ 2*input)
+    
+    end
+
+    @testset "Buffer + Writer" begin
+        mktempdir() do dir
+            input = [FASTX.FASTA.Record("test$i",randdnaseq(100)) for i in 1:3]
+            p = Pipeline(
+                Buffer(input; filename = "test.fa"),
+                Writer(FASTX.FASTA, dir),
+            )
+            filename = run(p)
+            p = Pipeline(
+                Reader(FASTX.FASTA, filename),
+                Collect(FASTX.FASTA.Record),
+            )
+            output = run(p)
+            @test output == input
+        end
+    end
+
 end
