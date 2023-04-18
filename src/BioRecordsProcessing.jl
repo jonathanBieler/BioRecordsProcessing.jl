@@ -4,7 +4,7 @@ module BioRecordsProcessing
 
     import Base: close, run, write
 
-    export Pipeline, Reader, Writer, File, Collect, Buffer
+    export Pipeline, Reader, Writer, File, Directory, Collect, Buffer
 
     include("process.jl")
     include("Source.jl")

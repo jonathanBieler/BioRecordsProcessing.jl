@@ -2,29 +2,48 @@
     AbstractFileProvider
 """
 abstract type AbstractFileProvider end
-
+is_paired(file_provider::AbstractFileProvider) = file_provider.paired
 
 """
-    File <: AbstractFileProvider
+```julia
+File(filename; second_in_pair = nothing)
+```
 
-File(filename)
+For paired files a function taking as argument the filename of the first file in pair and
+returning the filename of the second file can be provided. For example one can use `replace`
+ or a dictionnary, e.g. `second_in_pair = f1 -> replace(f1, "_1" => "_2")`.
 """
 struct File <: AbstractFileProvider
     filename::String
+    paired::Bool
+    second_in_pair::Function
+    File(filename; second_in_pair = nothing) = 
+        new(filename, !isnothing(second_in_pair), isnothing(second_in_pair) ? identity : second_in_pair)
 end
 
 """
-    Directory <: AbstractFileProvider
+```julia
+Directory(directory::String, glob_pattern::String; second_in_pair = nothing)
+```
 
-Directory(directory, glob_pattern)
+List all files matching the `glob_pattern` (See [Glob.jl](https://github.com/vtjnash/Glob.jl)) in `directory`.
+For paired files a function taking as argument the filename of the first file in pair and
+returning the filename of the second file can be provided.
+
+```@example
+Directory(input_directory, "*.fastq")
+```
 """
 struct Directory <: AbstractFileProvider
     directory::String
     glob_pattern::String
     files::Vector{String}
-    Directory(directory::String, glob_pattern::String) = begin
-        files = glob(glob_pattern, directory)        
-        new(directory, glob_pattern, files)
+    paired::Bool
+    second_in_pair::Function
+    Directory(directory::String, glob_pattern::String; second_in_pair = nothing) = begin
+        files = glob(glob_pattern, directory)
+        paired = !isnothing(second_in_pair)
+        new(directory, glob_pattern, files, paired, paired ? second_in_pair : identity)
     end
 end
 
@@ -44,7 +63,9 @@ The second argument can be a `File` or a `Directory`.
 If a string is passed the second argment will default to `File`.
 
 ```@example
-Reader(FASTX.FASTQ, "test.fa")
+Reader(FASTX.FASTA, "test.fa")
+Reader(FASTX.FASTA, File("test.fa"))
+Reader(FASTX.FASTQ, Directory("data/", "*.fastq"))
 ```
 """
 struct Reader{F} <: AbstractSource where {F <: AbstractFileProvider}
@@ -57,6 +78,7 @@ Reader(record_module::Module, filename::String) = Reader(record_module, File(fil
 
 record_type(reader::Reader{F}) where {F} = reader.record_module
 _filename(reader::Reader) = reader.file_provider.filename
+is_paired(reader::Reader) = is_paired(reader.file_provider)
 
 function open_reader(s::Reader, filepath, filename, extension)
 

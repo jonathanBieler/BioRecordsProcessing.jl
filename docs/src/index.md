@@ -53,17 +53,23 @@ to handle many common cases of biological records processing.
 - If the processing function returns `nothing` the record will not be written to the sink, allowing to filter out records.
 - When writing a file to the disk the sink will get the filename from the source, so a source need to have a filename provided in this case. 
 
-### Sources
+## Sources
 
 ```@docs
 BioRecordsProcessing.Reader
-```
-
-```@docs
 BioRecordsProcessing.Buffer
 ```
 
-### Sinks
+### File Providers
+
+Reader can take one of these files provider as agument :
+
+```@docs
+BioRecordsProcessing.File
+BioRecordsProcessing.Directory
+```
+
+## Sinks
 
 ```@docs
 Writer
