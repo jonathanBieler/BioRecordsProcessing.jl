@@ -1,133 +1,34 @@
 """
-    AbstractFileProvider
-"""
-abstract type AbstractFileProvider end
-
-struct File <: AbstractFileProvider
-    filename::String
-end
-
-struct Directory <: AbstractFileProvider
-    directory::String
-    glob_pattern::String
-end
-
-"""
-    AbstractSource
-"""
-abstract type AbstractSource end
-
-struct Reader{F} <: AbstractSource where {F <: AbstractFileProvider}
-    record_module::Module
-    file_provider::F
-end
-record_type(reader::Reader{F}) where {F} = reader.record_module
-
-function open_reader(s::AbstractSource, filepath, filename, extension)
-
-    RecordType = record_type(s)
-
-    if extension == ".gz"
-        reader = RecordType.Reader(GzipDecompressorStream(open(filepath)))
-
-    elseif extension == ".bam"
-        index_file = filepath * ".bai"
-        if !isfile(index_file)
-            @warn "Index file not found : $index_file"
-            reader = RecordType.Reader(open(filepath))
-        else
-            reader = RecordType.Reader(open(filepath); index = index_file)
-        end
-
-    else
-        reader = RecordType.Reader(open(filepath))
-    end
-    reader, RecordType
-end
-
-
-"""
-    AbstractSink
-"""
-abstract type AbstractSink end
-
-close(sink::T) where T<:AbstractSink = nothing
-return_value(sink::T) where T<:AbstractSink = nothing
-
-struct Collect{T} <: AbstractSink 
-    data::Vector{T}
-    Collect(T::DataType) = new{T}(T[])
-end
-
-open_writer(sink::Collect, filepath, filename, extension) = sink
-write(sink::Collect, record) = push!(sink.data, ismutable(record) ? copy(record) : record) #need to copy because record can be updated in-place
-return_value(sink::Collect) = sink.data
-
-mutable struct Writer <: AbstractSink
-    record_module::Module
-    output_directory::String
-    suffix::String
-    return_value::String
-end
-Writer(record_module::Module, output_directory::String; suffix = "") = Writer(record_module, output_directory, suffix, "")
-
-record_type(sink::Writer) = sink.record_module
-
-write(sink::Writer, record) = write(sink, record)
-return_value(sink::Writer) = sink.return_value
-
-# for gz files, e.g. .fastq.gz put suffix before the fastq
-
-# name.fastq .gz
-# name .fastq 
-
-function insert_suffix(filename, extension, suffix)
-    if occursin('.', filename)
-        parts = split(filename, '.')
-        parts[1] = parts[1] * suffix
-        filename = join(parts, '.')
-    else
-        filename = filename * suffix
-    end
-    return filename * extension
-end
-
-function open_writer(sink::Writer, filepath, filename, extension)
-    
-    out_file = joinpath(sink.output_directory, insert_suffix(filename, extension, sink.suffix))
-    sink.return_value = out_file
-    @assert out_file != filepath
-
-    RecordType = record_type(sink)
-
-    if extension == ".gz"
-        writer = RecordType.Writer(GzipCompressorStream(open(out_file, "w")))
-
-    elseif extension == ".bam"
-        #writer = ReadType.Writer(BGZFStream(out_file, "w"), reader.header)
-        error("Need to find a way to handle getting a header for the bam")
-    else
-        writer = RecordType.Writer(open(out_file, "w"))
-    end
-    writer
-end
-
-"""
     AbstractPipeline
 """
 abstract type AbstractPipeline end
 
+"""
+    Pipeline{So, Si} <: AbstractPipeline where {So <: AbstractSource, Si <: AbstractSink}
+
+
+"""
 mutable struct Pipeline{So, Si} <: AbstractPipeline where {So <: AbstractSource, Si <: AbstractSink}
     source::So
     process_function::Function
     sink::Si
 end
+Pipeline(source::So, sink::Si) where {So <: AbstractSource, Si <: AbstractSink} = Pipeline(source, identity, sink)
 
 ##
 
-function run(p::Pipeline{<:Reader, Si}; max_records = Inf, verbose = true) where {Si <: AbstractSink}
+# pipeline for a Bio reader
+function run(p::Pipeline{<:Reader{File}, Si}; max_records = Inf, verbose = true) where {Si <: AbstractSink}
+    if is_paired(p.source)
+        run_paired(p, p.source.file_provider.second_in_pair; max_records=max_records, verbose=verbose)
+    else
+        run_single(p; max_records=max_records, verbose=verbose)
+    end
+end
 
-    filepath = p.source.file_provider.filename
+function run_single(p::Pipeline{<:Reader{File}, Si}; max_records = Inf, verbose = true) where {Si <: AbstractSink}
+
+    filepath = _filename(p.source)
     filename, extension = splitext(basename(filepath))
 
     reader, RecordType = open_reader(p.source, filepath, filename, extension)
@@ -153,7 +54,93 @@ function run(p::Pipeline{<:Reader, Si}; max_records = Inf, verbose = true) where
     return_value(p.sink)
 end
 
+# pipeline for a Bio reader, paired
+function run_paired(p::Pipeline{<:Reader{File}, Si}, second_in_pair; max_records = Inf, verbose = true) where {Si <: AbstractSink}
 
+    filepath1 = _filename(p.source)
+    filename1, extension = splitext(basename(filepath1))
+
+    filename2 = second_in_pair(filename1)
+    filepath2 = joinpath(dirname(filepath1), filename2 * extension)
+
+    reader1, RecordType = open_reader(p.source, filepath1, filename1, extension)
+    reader2, _          = open_reader(p.source, filepath2, filename2, extension)
+
+    writer = open_writer_paired(p.sink, filepath1, filename1, filepath2, filename2, extension)
+    
+    record1, record2 = RecordType.Record(), RecordType.Record()
+    k = 0 
+    while !eof(reader1)
+
+        read!(reader1, record1)
+        read!(reader2, record2)
+        out_record = p.process_function(record1, record2)
+        !isnothing(out_record) && write(writer, out_record)
+
+        k += 1
+        k > max_records && break
+        if verbose && (mod(k, 100_000) == 0)
+            @info "$(Threads.threadid()), $(basename(filepath)) : Processed $(div(k, 1000))k records..."
+        end     
+    end
+    close(reader1)
+    close(reader2)
+    close(writer)
+
+    return_value(p.sink)
+end
+
+# pipeline for a in memory array
+function run(p::Pipeline{<:Buffer, Si}; max_records = Inf, verbose = true) where {Si <: AbstractSink}
+
+    filepath = _filename(p.source)
+    filename, extension = splitext(basename(filepath))
+
+    writer = open_writer(p.sink, filepath, filename, extension)
+    
+    k = 0 
+    for record in p.source.data
+
+        out_record = p.process_function(record)
+        !isnothing(out_record) && write(writer, out_record)
+
+        k += 1
+        k > max_records && break
+        if verbose && (mod(k, 100_000) == 0)
+            @info "$(Threads.threadid()), $(basename(filepath)) : Processed $(div(k, 1000))k records..."
+        end     
+    end
+    close(writer)
+
+    return_value(p.sink)
+end
+
+
+# pipeline for a folder
+function run(p::Pipeline{<:Reader{Directory}, Si}; max_records = Inf, verbose = true) where {Si <: AbstractSink}
+
+    files = p.source.file_provider.files
+    # create Pipelines's and run them in parallel
+    if verbose 
+        @info "Processing files:"
+        println.(files)
+    end
+
+    pipelines = [Pipeline(
+        Reader(record_type(p.source), File(
+            # File and Directory constructors put identiy as the function when not paired, so we need to check here
+            filename; second_in_pair = is_paired(p.source) ? p.source.file_provider.second_in_pair : nothing)
+        ),
+        p.process_function,
+        p.sink
+    ) for filename in files]
+
+    out = Vector{return_type(p.sink)}(undef, length(files))
+    Threads.@threads for i in eachindex(pipelines)
+        out[i] = run(pipelines[i]; max_records = max_records, verbose = verbose)      
+    end
+    out
+end
 
 
 ##
