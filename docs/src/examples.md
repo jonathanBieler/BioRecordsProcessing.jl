@@ -124,15 +124,13 @@ p = Pipeline(
     end,
     Writer(FASTX.FASTA, dir; suffix = ".trimmed"),
 )
-run(p)
+out = run(p; verbose = false)
+basename.(out)# run returns the path to output files
 
 # output
-[ Info: Processing files:
-/var/folders/8g/xj7pzy251n53px06l17vr0_00000gr/T/jl_Q3ppEq/test_1.fa
-/var/folders/8g/xj7pzy251n53px06l17vr0_00000gr/T/jl_Q3ppEq/test_2.fa
 2-element Vector{String}:
- "/var/folders/8g/xj7pzy251n53px06l17vr0_00000gr/T/jl_Q3ppEq/test_1.trimmed.fa"
- "/var/folders/8g/xj7pzy251n53px06l17vr0_00000gr/T/jl_Q3ppEq/test_2.trimmed.fa"
+ "test_1.trimmed.fa"
+ "test_2.trimmed.fa"
 ```
 
 ## Write sequences in memory into a file
