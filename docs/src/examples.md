@@ -29,10 +29,13 @@ DocTestSetup = quote
     close(writer)
 end
 
+# filter out temporary folder
 DocTestFilters = [
     r"Process\(.*",
     r"/var/folders.*",
     r" \"/var/folders.*",
+    r"/tmp/.*",
+    r" \"/tmp/.*",
 ]
 ```
 
