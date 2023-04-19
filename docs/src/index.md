@@ -79,4 +79,9 @@ Writer
 Collect
 ```
 
-### Examples
+## Pipeline
+
+```@docs
+Pipeline
+run
+```

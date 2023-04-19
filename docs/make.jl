@@ -16,7 +16,7 @@ makedocs(;
     pages=[
         "Manual" => "index.md",
         "Examples" => "examples.md",
-        #"API" => "API.md",
+        "Process (deprecated)" => "process.md",
     ],
 )
 

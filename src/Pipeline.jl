@@ -3,10 +3,14 @@
 """
 abstract type AbstractPipeline end
 
+
 """
-    Pipeline{So, Si} <: AbstractPipeline where {So <: AbstractSource, Si <: AbstractSink}
+```julia
+Pipeline(source, process_function, sink)
+Pipeline(source, sink)
+```
 
-
+Build a Pipeline, if `process_function` is omitted it will default to `identity`.
 """
 mutable struct Pipeline{So, Si} <: AbstractPipeline where {So <: AbstractSource, Si <: AbstractSink}
     source::So
@@ -17,7 +21,16 @@ Pipeline(source::So, sink::Si) where {So <: AbstractSource, Si <: AbstractSink} 
 
 ##
 
+
 # pipeline for a Bio reader
+"""
+```julia
+run(p::Pipeline; max_records = Inf, verbose = true)
+```
+
+Run the pipeline, the processing will stop after `max_records` have been read. Depending on the
+sink it will return a path to the output file or an array.
+"""
 function run(p::Pipeline{<:Reader{File}, Si}; max_records = Inf, verbose = true) where {Si <: AbstractSink}
     if is_paired(p.source)
         run_paired(p, p.source.file_provider.second_in_pair; max_records=max_records, verbose=verbose)
