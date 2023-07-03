@@ -2,6 +2,50 @@
 using BioRecordsProcessing, FASTX, BioSequences
 filename = "/Users/jbieler/.julia/dev/BioRecordsProcessing/test/data/illumina_full_range_as_illumina.fastq"
 
+@testset "ExternalTool + File" begin
+    mktempdir() do dir
+        spec = list_valid_specimens("SAM")
+        bam = joinpath(path_of_format("SAM"), "ce#1.sam")
+
+        p = Pipeline(
+            File(bam),
+            ExternalTool(filepath ->
+                read(`head -1 $filepath`, String)
+            ),
+        )
+        out = run(p)
+        @test out == "@SQ\tSN:CHROMOSOME_I\tLN:1009800\n"
+    end
+end
+
+@testset "ExternalTool + Paired File" begin
+    
+    p = Pipeline(
+        File("test1", second_in_pair = x -> "test2"),
+        ExternalTool(
+            (filepath1, filepath2) ->
+            filepath1 * filepath2
+        ),
+    )
+    out = run(p)
+    @test out == "test1test2"
+end
+
+@testset "ExternalTool + Directory" begin
+    mktempdir() do dir
+        samdir = path_of_format("SAM")
+        
+        p = Pipeline(
+            Directory(samdir, "xx#*"),
+            ExternalTool(filepath ->
+                read(`head -1 $filepath`, String)
+            ),
+        )
+        out = run(p)
+        @test out == ["", "@SQ\tSN:xx\tLN:20\n"]
+    end
+end
+
 @testset "Pipeline" begin
 
     @testset "FASTA Collect" begin
@@ -113,7 +157,7 @@ filename = "/Users/jbieler/.julia/dev/BioRecordsProcessing/test/data/illumina_fu
 
     @testset "Buffer + Writer" begin
         mktempdir() do dir
-            input = [FASTX.FASTA.Record("test$i",randdnaseq(100)) for i in 1:3]
+            input = [FASTX.FASTA.Record("test$i", randdnaseq(100)) for i in 1:3]
             p = Pipeline(
                 Buffer(input; filename = "test.fa"),
                 Writer(FASTX.FASTA, dir),
@@ -188,4 +232,5 @@ filename = "/Users/jbieler/.julia/dev/BioRecordsProcessing/test/data/illumina_fu
             @test XAM.BAM.sequence(out[end]) == dna"GGACTTGGCGGTACTTTATATCCATCTAGAGGAGCCTGTTCTATAATCGATAAACCCCGCTCTACCTCACC"
         end
     end
+
 end

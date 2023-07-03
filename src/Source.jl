@@ -21,6 +21,8 @@ struct File <: AbstractFileProvider
         new(filename, !isnothing(second_in_pair), isnothing(second_in_pair) ? identity : second_in_pair)
 end
 
+_filename(file::File) = file.filename
+
 """
 ```julia
 Directory(directory::String, glob_pattern::String; second_in_pair = nothing)
@@ -77,7 +79,7 @@ end
 Reader(record_module::Module, filename::String) = Reader(record_module, File(filename))
 
 record_type(reader::Reader{F}) where {F} = reader.record_module
-_filename(reader::Reader) = reader.file_provider.filename
+_filename(reader::Reader) = _filename(reader.file_provider)
 is_paired(reader::Reader) = is_paired(reader.file_provider)
 
 function open_reader(s::Reader, filepath, filename, extension)
