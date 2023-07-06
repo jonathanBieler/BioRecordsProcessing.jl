@@ -17,8 +17,9 @@ struct File <: AbstractFileProvider
     filename::String
     paired::Bool
     second_in_pair::Function
-    File(filename; second_in_pair = nothing) = 
-        new(filename, !isnothing(second_in_pair), isnothing(second_in_pair) ? identity : second_in_pair)
+    interval::Union{Interval, Nothing}
+    File(filename; second_in_pair = nothing, interval = nothing) = 
+        new(filename, !isnothing(second_in_pair), isnothing(second_in_pair) ? identity : second_in_pair, interval)
 end
 
 _filename(file::File) = file.filename
@@ -42,10 +43,11 @@ struct Directory <: AbstractFileProvider
     files::Vector{String}
     paired::Bool
     second_in_pair::Function
-    Directory(directory::String, glob_pattern::String; second_in_pair = nothing) = begin
+    interval::Union{Interval, Nothing}
+    Directory(directory::String, glob_pattern::String; second_in_pair = nothing, interval = nothing) = begin
         files = glob(glob_pattern, directory)
         paired = !isnothing(second_in_pair)
-        new(directory, glob_pattern, files, paired, paired ? second_in_pair : identity)
+        new(directory, glob_pattern, files, paired, paired ? second_in_pair : identity, interval)
     end
 end
 

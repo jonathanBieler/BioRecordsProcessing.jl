@@ -109,10 +109,22 @@ end
 
             read_file = file -> Pipeline(Reader(FASTX.FASTQ, file), Collect(FASTX.FASTQ.Record))
             @test run(read_file(directory.files[1])) == run(read_file(out[1]))
+            @test run(read_file(directory.files[1])) != run(read_file(out[2]))
         end
     end
 
     
+    @testset "Directory + Collect" begin
+        input_directory = path_of_format("FASTQ")
+        directory = Directory(input_directory, "solexa*.fastq")
+        p = Pipeline(
+            Reader(FASTX.FASTQ, directory),
+            r -> FASTQ.identifier(r),
+            Collect(String)
+        )
+        out = run(p)
+        @test out[1] != out[2] # make sure Collect is copied
+    end
 
     @testset "VCF" begin
         mktempdir() do dir
@@ -230,6 +242,23 @@ end
             )
             out = run(p)
             @test XAM.BAM.sequence(out[end]) == dna"GGACTTGGCGGTACTTTATATCCATCTAGAGGAGCCTGTTCTATAATCGATAAACCCCGCTCTACCTCACC"
+        end
+    end
+
+    @testset "BAM + Collect + Group by read name" begin
+        mktempdir() do dir
+            spec = list_valid_specimens("BAM")
+            bam = joinpath(path_of_format("BAM"), "R_12h_D06.uniq.q40.bam")
+
+            p = Pipeline(
+                Reader(BAM, File(joinpath(dir, bam))),
+                BAMPairedReadGrouper(),
+                (r1,r2) -> BAM.tempname(r1) == BAM.tempname(r2),
+                Collect(Bool)
+            )
+            out = run(p)
+            @test all(out)
+
         end
     end
 

@@ -38,7 +38,9 @@ return_type(sink::Collect{T}) where T = Vector{T}
 
 open_writer(sink::Collect, filepath, filename, extension) = begin empty!(sink.data); sink end
 open_writer_paired(sink::Collect, filepath1, filename1, filepath2, filename2, extension) = open_writer(sink, filepath1, filename1, extension)
-    
+
+Base.copy(sink::Collect) = deepcopy(sink)
+
 """
 ```julia
 Writer(record_module::Module, output_directory::String; suffix = "")
@@ -74,6 +76,8 @@ end
 
 return_value(sink::Writer) = sink.return_value
 return_type(sink::Writer) = String
+
+Base.copy(sink::Writer) = Writer(sink.record_module, sink.output_directory, sink.suffix, sink.return_value)
 
 # for gz files, e.g. .fastq.gz put suffix before the fastq
 # name.fastq .gz
