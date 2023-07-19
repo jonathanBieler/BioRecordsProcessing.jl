@@ -154,7 +154,7 @@ function run_paired(p::Pipeline{<:Reader{File}, <:OptionalGrouper, P, Si}, secon
         k += 1
         k > max_records && break
         if verbose && (mod(k, 100_000) == 0)
-            @info "$(Threads.threadid()), $(basename(filepath)) : Processed $(div(k, 1000))k records..."
+            @info "$(Threads.threadid()), $(basename(filepath1)) : Processed $(div(k, 1000))k records..."
         end     
     end
     close(reader1)
