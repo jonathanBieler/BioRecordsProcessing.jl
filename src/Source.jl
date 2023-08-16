@@ -60,6 +60,9 @@ interval(directory::Directory) = directory.interval
 """
 abstract type AbstractSource end
 
+# by default source is always in reading interval
+is_outside_interval(source::AbstractSource, record) = false
+
 """
 ```julia
 Reader(record_module::Module, file_provider::F) where {F <: AbstractFileProvider}
@@ -143,7 +146,7 @@ function seek_region!(reader::BAM.Reader, region)
     end
 end
 
-function is_outside_interval(source, record::BAM.Record)
+function is_outside_interval(source::T, record::BAM.Record) where T<:AbstractSource
     region = interval(source.file_provider)
     if !isnothing(region)
         BAM.position(record) > region.last && return true
