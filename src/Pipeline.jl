@@ -75,6 +75,8 @@ function run_single(p::Pipeline{<:Reader{File}, <:Nothing, P, Si}; max_records =
     while !eof(reader)
 
         read!(reader, record)
+        is_outside_interval(p.source, record) && break
+    
         out_record = p.processor(record)
         !isnothing(out_record) && write(writer, out_record)
 
@@ -105,15 +107,16 @@ function run_single(p::Pipeline{<:Reader{File}, <:RecordGrouper, P, Si}; max_rec
 
         record, idx = get_record(p.grouper)
         read!(reader, record)
+        is_outside_interval(p.source, record) && break
         
         key, isdone = group_record!(p.grouper, record, idx)
 
         if isdone
             records = (p.grouper.records[i] for i in p.grouper.groups[key])
             out_records = p.processor(records...)
-            for out_record in out_records
-                !isnothing(out_record) && write(writer, out_record) 
-            end
+            #for out_record in out_records
+            !isnothing(out_records) && write(writer, out_records)
+            #end
         end
         
         k += 1
@@ -148,6 +151,9 @@ function run_paired(p::Pipeline{<:Reader{File}, <:OptionalGrouper, P, Si}, secon
 
         read!(reader1, record1)
         read!(reader2, record2)
+
+        is_outside_interval(p.source, record1) && is_outside_interval(p.source, record2) && break
+
         out_record = p.processor(record1, record2)
         !isnothing(out_record) && write(writer, out_record)
 
@@ -216,7 +222,6 @@ function run(p::Pipeline{<:Reader{Directory}, <:OptionalGrouper, P, Si}; max_rec
     end
     out
 end
-
 
 ## ExternalTool
 

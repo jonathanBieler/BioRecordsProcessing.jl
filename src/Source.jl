@@ -3,6 +3,7 @@
 """
 abstract type AbstractFileProvider end
 is_paired(file_provider::AbstractFileProvider) = file_provider.paired
+interval(file_provider::AbstractFileProvider) = nothing
 
 """
 ```julia
@@ -23,6 +24,7 @@ struct File <: AbstractFileProvider
 end
 
 _filename(file::File) = file.filename
+interval(file::File) = file.interval
 
 """
 ```julia
@@ -50,6 +52,8 @@ struct Directory <: AbstractFileProvider
         new(directory, glob_pattern, files, paired, paired ? second_in_pair : identity, interval)
     end
 end
+
+interval(directory::Directory) = directory.interval
 
 """
     AbstractSource
@@ -99,6 +103,9 @@ function open_reader(s::Reader, filepath, filename, extension)
         else
             reader = RecordType.Reader(open(filepath); index = index_file)
         end
+        if !isnothing(interval(s.file_provider))
+            seek_region!(reader, interval(s.file_provider))
+        end
 
     else
         reader = RecordType.Reader(open(filepath))
@@ -121,3 +128,25 @@ struct Buffer{T} <: AbstractSource
 end
 
 _filename(buffer::Buffer) = buffer.filename
+
+
+## methods for interval selection
+
+function seek_region!(reader::BAM.Reader, region)
+
+    refindex = findfirst(isequal(region.seqname), reader.refseqnames)
+    refindex == nothing && throw(ArgumentError("sequence name $(iter.refname) is not found in the header"))
+    
+    chunks = XAM.BAM.Indexes.overlapchunks(reader.index.index, refindex, range(region) )
+    if !isempty(chunks)
+        seek(reader, first(chunks).start)
+    end
+end
+
+function is_outside_interval(source, record::BAM.Record)
+    region = interval(source.file_provider)
+    if !isnothing(region)
+        BAM.position(record) > region.last && return true
+    end
+    false
+end
