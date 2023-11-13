@@ -140,7 +140,7 @@ function seek_region!(reader::BAM.Reader, region)
     refindex = findfirst(isequal(region.seqname), reader.refseqnames)
     refindex == nothing && throw(ArgumentError("sequence name $(iter.refname) is not found in the header"))
     
-    chunks = XAM.BAM.Indexes.overlapchunks(reader.index.index, refindex, range(region) )
+    chunks = XAM.BAM.Indexes.overlapchunks(reader.index.index, refindex, region.first:region.last )
     if !isempty(chunks)
         seek(reader, first(chunks).start)
     end

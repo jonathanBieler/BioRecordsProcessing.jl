@@ -116,6 +116,10 @@ function run_single(p::Pipeline{<:Reader{File}, <:RecordGrouper, P, Si}; max_rec
             out_records = p.processor(records...)
             #for out_record in out_records
             !isnothing(out_records) && write(writer, out_records)
+
+            for i in p.grouper.groups[key]
+                free_idx!(p.grouper, i)
+            end
             #end
         end
         
