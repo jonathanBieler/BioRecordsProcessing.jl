@@ -18,6 +18,7 @@ makedocs(;
         "Examples" => "examples.md",
         "Process (deprecated)" => "process.md",
     ],
+    checkdocs=:exports,
 )
 
 deploydocs(;
