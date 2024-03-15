@@ -245,6 +245,8 @@ end
         end
     end
 
+    # Note : BWA can write additional alignements, in that case you can get more than two
+    # reads with the same name
     @testset "BAM + Collect + Group by read name" begin
         mktempdir() do dir
             spec = list_valid_specimens("BAM")
