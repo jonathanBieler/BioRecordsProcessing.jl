@@ -26,6 +26,14 @@ end
 _filename(file::File) = file.filename
 interval(file::File) = file.interval
 
+function Base.show(io::IO, source::File) 
+    print(io, "File(\"$(source.filename)\")")
+    if source.paired
+        print(io, "#Paired")
+    end
+end
+
+
 """
 ```julia
 Directory(directory::String, glob_pattern::String; second_in_pair = nothing)
@@ -50,6 +58,13 @@ struct Directory <: AbstractFileProvider
         files = glob(glob_pattern, directory)
         paired = !isnothing(second_in_pair)
         new(directory, glob_pattern, files, paired, paired ? second_in_pair : identity, interval)
+    end
+end
+
+function Base.show(io::IO, source::Directory) 
+    print(io, "Directory(\"$(source.directory)\")", "\"$(source.glob_pattern)\"")
+    if source.paired
+        print(io, "#Paired")
     end
 end
 
@@ -122,12 +137,16 @@ Buffer(data::Vector{T}; filename = "")
 ```
 
 Use the array `data` as a source of records. An optional filename can be provided when a `Writer`
-is used as a source.
+is used as a sink.
 """
 struct Buffer{T} <: AbstractSource 
     data::Vector{T}
     filename::String
     Buffer(data::Vector{T}; filename = "") where T = new{T}(data, filename)
+end
+
+function Base.show(io::IO, source::Buffer{T}) where T
+    print(io, "Buffer{$T}(; filename = \"$(source.filename)\")")
 end
 
 _filename(buffer::Buffer) = buffer.filename

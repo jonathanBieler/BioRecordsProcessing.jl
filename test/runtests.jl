@@ -6,5 +6,5 @@ using Test, FASTX, XAM, VariantCallFormat, BioSequences, FormatSpecimens
     @test BioRecordsProcessing.insert_suffix("name.fastq", ".gz", ".processed") == "name.processed.fastq.gz"
 end
 
+include("test_external_tool.jl")
 include("test_pipeline.jl")
-include("test_process.jl")

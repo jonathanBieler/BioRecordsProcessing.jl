@@ -16,7 +16,6 @@ makedocs(;
     pages=[
         "Manual" => "index.md",
         "Examples" => "examples.md",
-        "Process (deprecated)" => "process.md",
     ],
     checkdocs=:exports,
 )

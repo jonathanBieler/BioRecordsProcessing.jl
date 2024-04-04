@@ -51,7 +51,8 @@ to handle many common cases of biological records processing.
 ### Conventions
 
 - If the processing function returns `nothing` the record will not be written to the sink, allowing to filter out records.
-- When writing a file to the disk the sink will get the filename from the source, so a source need to have a filename provided in this case. 
+- When writing a file to the disk the sink will get the filename from the source, so a source need to have a filename provided in this case.
+- Paired records are passed as a tuple to the processing function, and this function should generally returns a tuple of records.
 
 ## Sources
 

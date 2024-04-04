@@ -1,19 +1,23 @@
-mutable struct RecordGrouper{R, G, F <: Function, FD <: Function}
+mutable struct RecordGrouper{R, G, F <: Function, FD <: Function, FV <: Function}
     records::Vector{R}
     free_idx::Set{Int}
     groups::Dict{G, Vector{Int}}
     get_key::F
     isdone::FD
+    is_valid_record::FV
     
-    RecordGrouper{R,G}(get_key::Function, isdone::Function) where {R, G} = 
-        new{R, G, typeof(get_key), typeof(isdone)}(
+    RecordGrouper{R,G}(get_key::Function, isdone::Function, is_valid_record::Function) where {R, G} = 
+        new{R, G, typeof(get_key), typeof(isdone), typeof(is_valid_record)}(
             [R() for i=1:10_000],
             Set{Int}(1:10_000),
             Dict{G, Vector{Int}}(),
             get_key,
-            isdone
+            isdone,
+            is_valid_record,
         )
 end
+
+RecordGrouper{R,G}(get_key::Function, isdone::Function) where {R, G} = RecordGrouper{R, G}(get_key, isdone, x->true)
 
 function check_free_idx!(rg::RecordGrouper{R,G}) where {R,G}
     if isempty(rg.free_idx)
@@ -38,16 +42,20 @@ end
 
 function group_record!(rg::RecordGrouper, r, idx)
     key = rg.get_key(r)
+    !rg.is_valid_record(r) && return key, false # ignore record
+
     if haskey(rg.groups, key)
         push!(rg.groups[key], idx)
     else
         rg.groups[key] = [idx]
     end
     records = (rg.records[i] for i in rg.groups[key])
+    
     key, rg.isdone(records)
 end
 
 BAMPairedReadGrouper() = RecordGrouper{BAM.Record, String}(
     r -> BAM.tempname(r),
-    records -> length(records) >= 2
+    records -> length(records) >= 2,
+    r -> BAM.isprimary(r)
 )

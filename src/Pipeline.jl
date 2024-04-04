@@ -44,6 +44,13 @@ Pipeline(source::So, processor::P, sink::Si) where {So <: AbstractSource, P <: A
 # ExternalTool take a AbstractFileProvider as source
 Pipeline(source::So, processor::ExternalTool) where {So <: AbstractFileProvider} = Pipeline(source, nothing, processor, nothing)
 
+function Base.show(io::IO, p::Pipeline) 
+    print(io, "Pipeline:\n")
+    print(io, "  $(p.source)\n")
+    print(io, "     ↓ \n")
+    print(io, "  $(p.sink)\n")
+end
+
 # pipeline for a Bio reader
 """
 ```julia
@@ -68,8 +75,15 @@ function run_single(p::Pipeline{<:Reader{File}, <:Nothing, P, Si}; max_records =
     filename, extension = splitext(basename(filepath))
 
     reader, RecordType = open_reader(p.source, filepath, filename, extension)
-    writer = open_writer(p.sink, filepath, filename, extension)
     
+    if is_paired(p.sink)
+        filename2 = p.sink.second_in_pair(filename)
+        filepath2 = joinpath(dirname(filepath), filename2 * extension)
+        writer = open_writer_paired(p.sink, filepath, filename, filepath2, filename2, extension)
+    else
+        writer = open_writer(p.sink, filepath, filename, extension)
+    end
+
     record = RecordType.Record()
     k = 0 
     while !eof(reader)
@@ -99,8 +113,15 @@ function run_single(p::Pipeline{<:Reader{File}, <:RecordGrouper, P, Si}; max_rec
     filename, extension = splitext(basename(filepath))
 
     reader, RecordType = open_reader(p.source, filepath, filename, extension)
-    writer = open_writer(p.sink, filepath, filename, extension)
-    
+
+    if is_paired(p.sink)
+        filename2 = p.sink.second_in_pair(filename)
+        filepath2 = joinpath(dirname(filepath), filename2 * extension)
+        
+        writer = open_writer_paired(p.sink, filepath, filename, filepath2, filename2, extension)
+    else
+        writer = open_writer(p.sink, filepath, filename, extension)
+    end
     record = RecordType.Record()
     k = 0 
     while !eof(reader)

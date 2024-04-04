@@ -12,7 +12,5 @@ module BioRecordsProcessing
     include("Processor.jl")
     include("RecordGrouper.jl")
     include("Pipeline.jl")
-    #
-    include("process.jl")
-
+    
 end

@@ -42,7 +42,7 @@ DocTestFilters = [
 # Examples
 
 All examples use `FASTA` files but should work with `FASTQ`, compressed `.gz` files, `VCF` from 
-`VariantCallFormat.jl` and `XAM.jl` types.
+`VariantCallFormat.jl` and `XAM.jl` types. More examples can be found in the tests.
 
 ## Reading a FASTA file into memory
 
