@@ -1,7 +1,7 @@
 name = "BioRecordsProcessing"
 uuid = "321bc2d7-9525-42af-8b23-17b2621d5ea8"
 authors = ["Jonathan Bieler <jonathan.bieler@alumni.epfl.ch> and contributors"]
-version = "0.2.2"
+version = "0.2.3"
 
 [deps]
 BGZFStreams = "28d598bf-9b8f-59f1-b38c-5a06b4a0f5e6"
