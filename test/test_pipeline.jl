@@ -88,6 +88,8 @@
         @test out[1] != out[2] # make sure Collect is copied
     end
 
+    #disable until https://github.com/rasmushenningsson/VariantCallFormat.jl/issues/5 is fixed
+    if false
     @testset "VCF" begin
         mktempdir() do dir
             filepath = joinpath(path_of_format("VCF"), "adeno_virus.vcf")
@@ -117,9 +119,9 @@
             @test_throws ErrorException run(p)    
         end
     end
+    end 
 
-    @testset "Buffer + Collect" begin
-        
+    @testset "Buffer + Collect" begin 
         input = rand(10)
         p = Pipeline(
             Buffer(input),
@@ -129,7 +131,18 @@
         @show p
         output = run(p)
         @test all(output .≈ 2*input)
-    
+    end
+
+    @testset "Buffer + Collect with generator" begin 
+        input = (i for i in 1:10)
+        p = Pipeline(
+            Buffer(input),
+            x -> 2x,
+            Collect(Float64),
+        )
+        @show p
+        output = run(p)
+        @test all(output .≈ 2 .* input)
     end
 
     @testset "Buffer + Writer" begin
@@ -280,6 +293,24 @@
 
         end
     end
+
+    @testset "BAM + Index" begin
+        mktempdir() do dir
+            spec = list_valid_specimens("BAM")
+            bam = joinpath(path_of_format("BAM"), "SRR7993829_1.100K.forward.bam")
+            index = BAM.BAI(bam * ".bai")
+
+            p = Pipeline(
+                Reader(BAM, File(bam); index = index),
+                Collect(BAM.Record)
+            )
+            @show p
+            out = run(p)
+            @test length(out) == 36405
+        end
+    end
+
+    
 
     @testset "BAM to paired FASTQ" begin
         mktempdir() do dir

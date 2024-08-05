@@ -57,5 +57,5 @@ end
 BAMPairedReadGrouper() = RecordGrouper{BAM.Record, String}(
     r -> BAM.tempname(r),
     records -> length(records) >= 2,
-    r -> BAM.isprimary(r)
+    r -> BAM.isprimaryalignment(r)
 )

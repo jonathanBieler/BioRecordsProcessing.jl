@@ -94,35 +94,43 @@ Reader(FASTX.FASTA, File("test.fa"))
 Reader(FASTX.FASTQ, Directory("data/", "*.fastq"))
 ```
 """
-struct Reader{F} <: AbstractSource where {F <: AbstractFileProvider}
+struct Reader{F,I} <: AbstractSource where {F <: AbstractFileProvider, I}
     record_module::Module
     file_provider::F
+    index::I
 
-    Reader(record_module::Module, file_provider::F) where {F <: AbstractFileProvider} = new{F}(record_module, file_provider)
+    Reader(record_module::Module, file_provider::F, index::I) where {F <: AbstractFileProvider, I} = new{F, I}(record_module, file_provider, index)
 end
-Reader(record_module::Module, filename::String) = Reader(record_module, File(filename))
+Reader(record_module::Module, file_provider::F; index=nothing) where {F <: AbstractFileProvider} =  Reader(record_module, file_provider, index)
+Reader(record_module::Module, filename::String; index=nothing) = Reader(record_module, File(filename); index=index)
 
 record_type(reader::Reader{F}) where {F} = reader.record_module
 _filename(reader::Reader) = _filename(reader.file_provider)
 is_paired(reader::Reader) = is_paired(reader.file_provider)
 
-function open_reader(s::Reader, filepath, filename, extension)
+function open_reader(source::Reader, filepath, filename, extension)
 
-    RecordType = record_type(s)
+    RecordType = record_type(source)
 
     if extension == ".gz"
         reader = RecordType.Reader(GzipDecompressorStream(open(filepath)))
 
     elseif extension == ".bam"
-        index_file = filepath * ".bai"
-        if !isfile(index_file)
-            @warn "Index file not found : $index_file"
-            reader = RecordType.Reader(open(filepath))
+        
+        if !isnothing(source.index)
+            reader = RecordType.Reader(open(filepath); index = source.index)
         else
-            reader = RecordType.Reader(open(filepath); index = index_file)
+            index_file = filepath * ".bai"
+            if !isfile(index_file)
+                @warn "Index file not found : $index_file"
+                reader = RecordType.Reader(open(filepath))
+            else
+                reader = RecordType.Reader(open(filepath); index = index_file)
+            end
         end
-        if !isnothing(interval(s.file_provider))
-            seek_region!(reader, interval(s.file_provider))
+
+        if !isnothing(interval(source.file_provider))
+            seek_region!(reader, interval(source.file_provider))
         end
 
     else
@@ -131,18 +139,24 @@ function open_reader(s::Reader, filepath, filename, extension)
     reader, RecordType
 end
 
+
+function Base.show(io::IO, source::Reader) 
+    print(io, "Reader($(source.record_module), $(source.file_provider))")
+end
+
+
 """
 ```julia
-Buffer(data::Vector{T}; filename = "")
+Buffer(data::T; filename = "")
 ```
 
-Use the array `data` as a source of records. An optional filename can be provided when a `Writer`
+Use the collection `data` as a source of records. An optional filename can be provided when a `Writer`
 is used as a sink.
 """
 struct Buffer{T} <: AbstractSource 
-    data::Vector{T}
+    data::T
     filename::String
-    Buffer(data::Vector{T}; filename = "") where T = new{T}(data, filename)
+    Buffer(data::T; filename = "") where T = new{T}(data, filename)
 end
 
 function Base.show(io::IO, source::Buffer{T}) where T
@@ -159,7 +173,7 @@ function seek_region!(reader::BAM.Reader, region)
     refindex = findfirst(isequal(region.seqname), reader.refseqnames)
     refindex == nothing && throw(ArgumentError("sequence name $(iter.refname) is not found in the header"))
     
-    chunks = XAM.BAM.Indexes.overlapchunks(reader.index.index, refindex, region.first:region.last )
+    chunks = XAM.BAM.Indexes.overlapchunks(reader.index.index, refindex, region.first:region.last)
     if !isempty(chunks)
         seek(reader, first(chunks).start)
     end

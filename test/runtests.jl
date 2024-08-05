@@ -1,5 +1,6 @@
 using BioRecordsProcessing
-using Test, FASTX, XAM, VariantCallFormat, BioSequences, FormatSpecimens
+using Test, FASTX, XAM, BioSequences, FormatSpecimens
+#VariantCallFormat
 
 @testset "Internals" begin
     @test BioRecordsProcessing.insert_suffix("name", ".fastq", ".processed") == "name.processed.fastq"
