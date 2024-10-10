@@ -158,8 +158,8 @@ Process(`head /var/folders/8g/xj7pzy251n53px06l17vr0_00000gr/T/jl_NSdfEq/test.fa
 ## Loading paired-end reads from a BAM file in a genomic interval
 
 In general records can be grouped using a `RecordGrouper`. For pair-end BAMs `BAMPairedReadGrouper`
-is provided. Tt will group the two first reads (primary alignement only) with the same
-read name it encounters and release them for processing :
+is provided. It will group the two first reads (primary alignments only) with the same
+read name it encounters and release them for processing as a pair:
 
 ```julia
 using BioRecordsProcessing, XAM, GenomicFeatures
