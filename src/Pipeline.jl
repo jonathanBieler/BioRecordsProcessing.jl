@@ -21,7 +21,12 @@ mutable struct Pipeline{So, G, P, Si} <: AbstractPipeline where {So <: FileOrSou
     grouper::G
     processor::P
     sink::Si
+    hasbeenrun::Bool
 end
+
+
+Pipeline(source::So, grouper::G, processor::P, sink::Si) where {So <: FileOrSource, G <:OptionalGrouper, P <:AbstractProcessor, Si <: OptionalSink} =
+    Pipeline(source, grouper, processor, sink, false)
 
 # no processor
 Pipeline(source::So, sink::Si) where {So <: AbstractSource, Si <: OptionalSink} = Pipeline(source, identity, sink)
@@ -67,6 +72,8 @@ Run the pipeline, the processing will stop after `max_records` have been read. D
 sink it will return a path to the output file or an array.
 """
 function run(p::Pipeline{<:Reader{File{I}}, <:OptionalGrouper, P, Si}; max_records = Inf, verbose = true) where {Si <: AbstractSink, P <: AbstractProcessor, I}
+    p.hasbeenrun && error("Running the same pipeline twice is currently not supported.")
+    p.hasbeenrun
     if is_paired(p.source)
         run_paired(p, p.source.file_provider.second_in_pair; max_records=max_records, verbose=verbose)
     else

@@ -21,7 +21,6 @@ end
 
 # BioRecordsProcessing
 
-
 In BioRecordsProcessing records are processed using a `Pipeline` that is constructed by taking a source (producing records),
 a user-defined function to process the records and a sink that will store the output of the processing function. The pipeline can then be run.
 

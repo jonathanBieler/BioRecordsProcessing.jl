@@ -217,14 +217,15 @@ out = run(p)
 ## Reading a VCF in a DataFrame
 
 Note : This probably wont' work because of compatibilty issues, see :
-https://github.com/rasmushenningsson/VariantCallFormat.jl/issues/5
+[https://github.com/rasmushenningsson/VariantCallFormat.jl/issues/5](https://github.com/rasmushenningsson/VariantCallFormat.jl/issues/5)
 
 ```julia
-using VariantCallFormat
+using BioRecordsProcessing, VariantCallFormat, DataFrames
 
 get_depth(r) = parse(Int, VCF.genotype(r, 1, "DP"))
 get_vaf(r) = parse(Float64, VCF.genotype(r, 1, "VAF"))
 
+# define output type (we could just use Any)
 T = NamedTuple{(:chr, :pos, :ref, :alt, :depth, :vaf, :quality), Tuple{String, Int64, String, String, Int64, String, Float64}}
 
 p = Pipeline(
@@ -244,4 +245,33 @@ df = run(p) |> DataFrame
 
 ## Aligning a FASTQ file to the reference genome :
 
-See this blog post : https://jonathanbieler.github.io/blog/fastq2cnv/
+See this blog post : 
+[https://jonathanbieler.github.io/blog/fastq2cnv/](https://jonathanbieler.github.io/blog/fastq2cnv/)
+
+## Converting a BAM file into FASTQ's
+
+```julia
+using BioRecordsProcessing, XAM, FASTX
+
+p = Pipeline(
+    Reader(XAM.BAM, File(bamfile)),
+    BAMPairedReadGrouper(),
+    (r1,r2) -> begin 
+        f1 = FASTQ.Record(BAM.tempname(r1), BAM.sequence(r1), BAM.quality(r1))
+        f2 = FASTQ.Record(BAM.tempname(r2), BAM.sequence(r2), BAM.quality(r2))
+        (f1,f2)
+    end,
+    Writer(
+        FASTQ, dir; 
+        paired = true, 
+        second_in_pair = x -> x * "_R2", # append _R2 to bam name
+        extension = ".fastq.gz" # since the output file type is different from input we need to provide extension
+    ),
+)
+run(p; max_records = 100)
+
+# output
+2-element Vector{String}:
+ "/tmp/jl_srnqiA/bwa.fastq.gz"
+ "/tmp/jl_srnqiA/bwa_R2.fastq.gz
+```
