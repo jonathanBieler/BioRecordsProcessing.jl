@@ -177,7 +177,7 @@ p = Pipeline(
 out = run(p)
 ```
 
-## Generate artificial FASTQ reads
+## Generating artificial FASTQ reads
 
 A generator can be passed as input in a Buffer : 
 
