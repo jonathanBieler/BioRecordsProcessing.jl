@@ -152,3 +152,96 @@ run(`head $out`)
 ATGC
 Process(`head /var/folders/8g/xj7pzy251n53px06l17vr0_00000gr/T/jl_NSdfEq/test.fa`, ProcessExited(0))
 ```
+
+# Cookbook
+
+## Loading paired-end reads from a BAM file in a genomic interval
+
+In general records can be grouped using a `RecordGrouper`. For pair-end BAMs `BAMPairedReadGrouper`
+is provided. Tt will group the two first reads (primary alignement only) with the same
+read name it encounters and release them for processing :
+
+```julia
+using BioRecordsProcessing, XAM, GenomicFeatures
+
+region = Interval("9", 22331023, 24542023)
+
+p = Pipeline(
+    Reader(XAM.BAM, File(bamfile; interval = region)),
+    BioRecordsProcessing.BAMPairedReadGrouper(),
+    (r1,r2) -> begin 
+        (r1,r2)
+    end,
+    Collect(Tuple{XAM.BAM.Record, XAM.BAM.Record}),
+)
+out = run(p)
+```
+
+## Generate artificial FASTQ reads
+
+A generator can be passed as input in a Buffer : 
+
+```jldoctest
+using BioRecordsProcessing, FASTX, BioSequences
+
+generate_read(i) = FASTA.Record("seq$i", randdnaseq(150))
+
+p = Pipeline(
+    Buffer(generate_read(i) for i in 1:10; filename = "test.fa"),
+    Writer(FASTX.FASTA, dir),
+)
+out = run(p)
+
+# output
+"/tmp/jl_0mSqQJ/test.fastq"
+```
+
+Paired-end reads can also be generated :
+
+```jldoctest
+generate_read(i) = FASTQ.Record("seq$i", randdnaseq(150), fill(UInt8(40), 150))
+generate_reads(i) = (generate_read(i), generate_read(i))
+
+p = Pipeline(
+    Buffer(generate_reads(i) for i in 1:10; filename = "test_R1.fastq.gz"),
+    Writer(FASTX.FASTQ, dir; paired = true, second_in_pair = x -> replace(x, "_R1" => "_R2")),
+)
+out = run(p)
+
+# output
+2-element Vector{String}:
+ "/tmp/jl_srnqiA/test_R1.fastq.gz"
+ "/tmp/jl_srnqiA/test_R2.fastq.gz"
+```
+
+## Reading a VCF in a DataFrame
+
+Note : This probably wont' work because of compatibilty issues, see :
+https://github.com/rasmushenningsson/VariantCallFormat.jl/issues/5
+
+```julia
+using VariantCallFormat
+
+get_depth(r) = parse(Int, VCF.genotype(r, 1, "DP"))
+get_vaf(r) = parse(Float64, VCF.genotype(r, 1, "VAF"))
+
+T = NamedTuple{(:chr, :pos, :ref, :alt, :depth, :vaf, :quality), Tuple{String, Int64, String, String, Int64, String, Float64}}
+
+p = Pipeline(
+    Reader(VCF, File(filepath)),
+    r -> begin
+        VCF.filter(r) !=  ["PASS"] && return nothing #filter variants that are not PASS
+
+        (chr = VCF.chrom(r), pos = VCF.pos(r), ref = VCF.ref(r), alt = VCF.alt(r)[1], 
+        depth=get_depth(r), vaf=VCF.genotype(r, 1, "VAF"), quality = VCF.qual(r)
+        )
+    end,
+    Collect(T),
+)
+
+df = run(p) |> DataFrame
+```
+
+## Aligning a FASTQ file to the reference genome :
+
+See this blog post : https://jonathanbieler.github.io/blog/fastq2cnv/

@@ -8,7 +8,7 @@ mutable struct RecordGrouper{R, G, F <: Function, FD <: Function, FV <: Function
     
     RecordGrouper{R,G}(get_key::Function, isdone::Function, is_valid_record::Function) where {R, G} = 
         new{R, G, typeof(get_key), typeof(isdone), typeof(is_valid_record)}(
-            [R() for i=1:10_000],
+            [initialize_record(R) for i=1:10_000],
             Set{Int}(1:10_000),
             Dict{G, Vector{Int}}(),
             get_key,
@@ -17,6 +17,9 @@ mutable struct RecordGrouper{R, G, F <: Function, FD <: Function, FV <: Function
         )
 end
 
+initialize_record(::Type{R}) where R = R()
+initialize_record(::Type{R}) where R <: Tuple{T,T}  where T = (T(), T())
+ 
 RecordGrouper{R,G}(get_key::Function, isdone::Function) where {R, G} = RecordGrouper{R, G}(get_key, isdone, x->true)
 
 function check_free_idx!(rg::RecordGrouper{R,G}) where {R,G}
@@ -32,6 +35,10 @@ end
 
 function free_idx!(rg::RecordGrouper{R,G}, idx) where {R,G}
     push!(rg.free_idx, idx)
+end
+
+function free_group!(rg::RecordGrouper{R,G}, key) where {R,G}
+    rg.groups[key] = Int[]
 end
 
 function get_record(rg::RecordGrouper{R,G}) where {R,G}
